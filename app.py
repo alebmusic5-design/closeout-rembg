@@ -1,6 +1,5 @@
 from flask import Flask, request, send_file
 from rembg import remove
-from PIL import Image
 import requests
 from io import BytesIO
 
@@ -9,27 +8,37 @@ app = Flask(__name__)
 @app.route("/remove-bg", methods=["POST"])
 def remove_bg():
 
-    image_url = request.json.get("image_url")
+    data = request.get_json()
+
+    image_url = data.get("image_url")
 
     if not image_url:
         return {"error": "missing image_url"}, 400
 
+    # Scarica immagine
     response = requests.get(image_url)
 
-    input_image = Image.open(BytesIO(response.content))
+    if response.status_code != 200:
+        return {"error": "download failed"}, 400
 
-    output = remove(input_image)
+    input_bytes = response.content
 
-    output_buffer = BytesIO()
+    # REMBG
+    output_bytes = remove(input_bytes)
 
-    output.save(output_buffer, format="PNG")
+    # Buffer output
+    output_buffer = BytesIO(output_bytes)
 
     output_buffer.seek(0)
 
     return send_file(
         output_buffer,
-        mimetype='image/png'
+        mimetype="image/png"
     )
+
+@app.route("/")
+def home():
+    return "Rembg server online"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
