@@ -1,7 +1,6 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, Response
 from rembg import remove
 import requests
-from io import BytesIO
 
 app = Flask(__name__)
 
@@ -15,7 +14,6 @@ def remove_bg():
     if not image_url:
         return {"error": "missing image_url"}, 400
 
-    # Scarica immagine
     response = requests.get(image_url)
 
     if response.status_code != 200:
@@ -23,16 +21,10 @@ def remove_bg():
 
     input_bytes = response.content
 
-    # REMBG
     output_bytes = remove(input_bytes)
 
-    # Buffer output
-    output_buffer = BytesIO(output_bytes)
-
-    output_buffer.seek(0)
-
-    return send_file(
-        output_buffer,
+    return Response(
+        output_bytes,
         mimetype="image/png"
     )
 
